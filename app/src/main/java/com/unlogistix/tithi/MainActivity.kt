@@ -4,6 +4,7 @@ package com.unlogistix.tithi
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +18,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 private val Cream = Color(0xFFF8F6F0)
 private val White = Color(0xFFFFFFFF)
@@ -25,6 +31,9 @@ private val TextDark = Color(0xFF282D32)
 private val Muted = Color(0xFF777D83)
 private val SoftBlue = Color(0xFFEAF0F6)
 private val Border = Color(0xFFE9E5DC)
+
+private val DhakaTimeZone = TimeZone.getTimeZone("Asia/Dhaka")
+private val BengaliLocale = Locale("bn", "BD")
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,7 +79,7 @@ fun TithiApp() {
                             onClick = { selectedTab = index },
                             icon = {
                                 Text(
-                                    text = symbols[index],
+                                    symbols[index],
                                     fontSize = 21.sp
                                 )
                             },
@@ -84,11 +93,7 @@ fun TithiApp() {
         ) { padding ->
             when (selectedTab) {
                 0 -> HomeScreen(Modifier.padding(padding))
-                1 -> InfoScreen(
-                    Modifier.padding(padding),
-                    "পঞ্জিকা",
-                    "প্রতিদিনের তিথি, পক্ষ, নক্ষত্র, যোগ ও করণের নির্ভরযোগ্য তথ্য এখানে যুক্ত করা হবে।"
-                )
+                1 -> PanchangScreen(Modifier.padding(padding))
                 2 -> InfoScreen(
                     Modifier.padding(padding),
                     "জ্ঞানভাণ্ডার",
@@ -134,11 +139,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 )
             }
 
-            Text(
-                "ॐ",
-                fontSize = 34.sp,
-                color = Navy
-            )
+            Text("ॐ", fontSize = 34.sp, color = Navy)
         }
 
         Spacer(Modifier.height(28.dp))
@@ -166,7 +167,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = White),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Border)
+            border = BorderStroke(1.dp, Border)
         ) {
             Column(Modifier.padding(18.dp)) {
                 Text(
@@ -230,7 +231,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = White),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Border)
+            border = BorderStroke(1.dp, Border)
         ) {
             Column(Modifier.padding(18.dp)) {
                 Text(
@@ -262,6 +263,244 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun PanchangScreen(modifier: Modifier = Modifier) {
+    var selectedDateMillis by remember {
+        mutableLongStateOf(
+            Calendar.getInstance(DhakaTimeZone).timeInMillis
+        )
+    }
+
+    val dateFormatter = remember {
+        SimpleDateFormat(
+            "EEEE, d MMMM yyyy",
+            BengaliLocale
+        ).apply {
+            timeZone = DhakaTimeZone
+        }
+    }
+
+    val selectedDateText = remember(selectedDateMillis) {
+        dateFormatter.format(Date(selectedDateMillis))
+    }
+
+    val isToday = remember(selectedDateMillis) {
+        val selected = Calendar.getInstance(DhakaTimeZone)
+        selected.timeInMillis = selectedDateMillis
+
+        val today = Calendar.getInstance(DhakaTimeZone)
+
+        selected.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+            selected.get(Calendar.DAY_OF_YEAR) ==
+            today.get(Calendar.DAY_OF_YEAR)
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Cream)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+    ) {
+        Spacer(Modifier.height(22.dp))
+
+        Text(
+            "TITHI",
+            fontSize = 11.sp,
+            color = Muted,
+            letterSpacing = 2.sp
+        )
+
+        Spacer(Modifier.height(7.dp))
+
+        Text(
+            "দৈনিক পঞ্জিকা",
+            fontSize = 27.sp,
+            fontWeight = FontWeight.Bold,
+            color = Navy
+        )
+
+        Spacer(Modifier.height(5.dp))
+
+        Text(
+            "প্রতিদিনের পঞ্জিকার বিস্তারিত তথ্য",
+            fontSize = 13.sp,
+            color = Muted
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = White),
+            border = BorderStroke(1.dp, Border)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "নির্বাচিত তারিখ",
+                    fontSize = 12.sp,
+                    color = Muted
+                )
+
+                Spacer(Modifier.height(7.dp))
+
+                Text(
+                    selectedDateText,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Navy
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = {
+                            val calendar =
+                                Calendar.getInstance(DhakaTimeZone)
+                            calendar.timeInMillis = selectedDateMillis
+                            calendar.add(Calendar.DAY_OF_MONTH, -1)
+                            selectedDateMillis = calendar.timeInMillis
+                        }
+                    ) {
+                        Text("← আগের দিন")
+                    }
+
+                    if (!isToday) {
+                        TextButton(
+                            onClick = {
+                                selectedDateMillis =
+                                    Calendar.getInstance(
+                                        DhakaTimeZone
+                                    ).timeInMillis
+                            }
+                        ) {
+                            Text("আজ")
+                        }
+                    }
+
+                    TextButton(
+                        onClick = {
+                            val calendar =
+                                Calendar.getInstance(DhakaTimeZone)
+                            calendar.timeInMillis = selectedDateMillis
+                            calendar.add(Calendar.DAY_OF_MONTH, 1)
+                            selectedDateMillis = calendar.timeInMillis
+                        }
+                    ) {
+                        Text("পরের দিন →")
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(22.dp))
+
+        SectionHeading("তিথি ও পক্ষ", "TITHI & PAKSHA")
+
+        PanchangInfoCard(
+            "চন্দ্রতিথির বিবরণ",
+            listOf(
+                "তিথি" to "তথ্য অপেক্ষমাণ",
+                "পক্ষ" to "তথ্য অপেক্ষমাণ"
+            )
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        SectionHeading("নক্ষত্র ও যোগ", "NAKSHATRA & YOGA")
+
+        PanchangInfoCard(
+            "জ্যোতিষীয় বিবরণ",
+            listOf(
+                "নক্ষত্র" to "তথ্য অপেক্ষমাণ",
+                "যোগ" to "তথ্য অপেক্ষমাণ",
+                "করণ" to "তথ্য অপেক্ষমাণ"
+            )
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        SectionHeading("সূর্যের সময়", "SUNRISE & SUNSET")
+
+        PanchangInfoCard(
+            "স্থানীয় সূর্যোদয় ও সূর্যাস্ত",
+            listOf(
+                "সূর্যোদয়" to "তথ্য অপেক্ষমাণ",
+                "সূর্যাস্ত" to "তথ্য অপেক্ষমাণ"
+            )
+        )
+
+        Spacer(Modifier.height(18.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = SoftBlue)
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    "তথ্যের নির্ভরযোগ্যতা",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Navy
+                )
+
+                Spacer(Modifier.height(6.dp))
+
+                Text(
+                    "এই সংস্করণে পঞ্জিকার গণনা এখনো যুক্ত হয়নি। " +
+                        "যাচাই ছাড়া কোনো তিথি, সময় বা জ্যোতিষীয় তথ্য দেখানো হচ্ছে না।",
+                    fontSize = 12.sp,
+                    lineHeight = 19.sp,
+                    color = TextDark
+                )
+            }
+        }
+
+        Spacer(Modifier.height(26.dp))
+    }
+}
+
+@Composable
+fun PanchangInfoCard(
+    title: String,
+    rows: List<Pair<String, String>>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        border = BorderStroke(1.dp, Border)
+    ) {
+        Column(Modifier.padding(18.dp)) {
+            Text(
+                title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Navy
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 12.dp),
+                color = Border
+            )
+
+            rows.forEach { (label, value) ->
+                InfoRow(label, value)
+            }
+        }
+    }
+}
+
+@Composable
 fun SectionHeading(title: String, subtitle: String) {
     Column {
         Text(
@@ -271,7 +510,9 @@ fun SectionHeading(title: String, subtitle: String) {
             fontWeight = FontWeight.Medium,
             letterSpacing = 1.5.sp
         )
+
         Spacer(Modifier.height(4.dp))
+
         Text(
             title,
             fontSize = 19.sp,
@@ -279,6 +520,7 @@ fun SectionHeading(title: String, subtitle: String) {
             color = TextDark
         )
     }
+
     Spacer(Modifier.height(12.dp))
 }
 
@@ -296,6 +538,7 @@ fun InfoRow(label: String, value: String) {
             fontSize = 13.sp,
             color = Muted
         )
+
         Text(
             value,
             fontSize = 12.sp,
@@ -318,23 +561,29 @@ fun InfoScreen(
             .padding(22.dp)
     ) {
         Spacer(Modifier.height(20.dp))
+
         Text(
             "TITHI",
             fontSize = 12.sp,
             color = Muted,
             letterSpacing = 2.sp
         )
+
         Spacer(Modifier.height(10.dp))
+
         Text(
             title,
             fontSize = 27.sp,
             fontWeight = FontWeight.Bold,
             color = Navy
         )
+
         Spacer(Modifier.height(16.dp))
+
         Card(
             shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = White)
+            colors = CardDefaults.cardColors(containerColor = White),
+            border = BorderStroke(1.dp, Border)
         ) {
             Text(
                 description,
