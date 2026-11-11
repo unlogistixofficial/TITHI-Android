@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
@@ -31,9 +32,40 @@ private val TextDark = Color(0xFF282D32)
 private val Muted = Color(0xFF777D83)
 private val SoftBlue = Color(0xFFEAF0F6)
 private val Border = Color(0xFFE9E5DC)
+private val Gold = Color(0xFF9B7842)
 
 private val DhakaTimeZone = TimeZone.getTimeZone("Asia/Dhaka")
 private val BengaliLocale = Locale("bn", "BD")
+
+private data class ScriptureVerse(
+    val sanskrit: String,
+    val meaningBn: String,
+    val reference: String
+)
+
+private val dailyVerses = listOf(
+    ScriptureVerse(
+        sanskrit = "कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।\n" +
+            "मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥",
+        meaningBn = "কর্ম করাই তোমার অধিকার, তার ফলে কখনোই নয়। " +
+            "কর্মফলকে উদ্দেশ্য করে কাজ করো না, আবার কর্ম না করার প্রতিও আসক্ত হয়ো না।",
+        reference = "শ্রীমদ্ভগবদ্গীতা · ২.৪৭"
+    ),
+    ScriptureVerse(
+        sanskrit = "योगस्थः कुरु कर्माणि सङ्गं त्यक्त्वा धनञ्जय।\n" +
+            "सिद्ध्यसिद्ध्योः समो भूत्वा समत्वं योग उच्यते॥",
+        meaningBn = "হে ধনঞ্জয়, আসক্তি ত্যাগ করে যোগে প্রতিষ্ঠিত হয়ে কর্ম করো। " +
+            "সাফল্য ও ব্যর্থতায় সমভাব বজায় রাখো; এই সমভাবকেই যোগ বলা হয়।",
+        reference = "শ্রীমদ্ভগবদ্গীতা · ২.৪৮"
+    ),
+    ScriptureVerse(
+        sanskrit = "यस्मान्नोद्विजते लोको लोकान्नोद्विजते च यः।\n" +
+            "हर्षामर्षभयोद्वेगैर्मुक्तो यः स च मे प्रियः॥",
+        meaningBn = "যাঁর দ্বারা জগৎ বিচলিত হয় না এবং যিনি জগতের দ্বারা বিচলিত হন না, " +
+            "যিনি আনন্দ, ঈর্ষা, ভয় ও উদ্বেগ থেকে মুক্ত—তিনি আমার প্রিয়।",
+        reference = "শ্রীমদ্ভগবদ্গীতা · ১২.১৫"
+    )
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,10 +110,7 @@ fun TithiApp() {
                             selected = selectedTab == index,
                             onClick = { selectedTab = index },
                             icon = {
-                                Text(
-                                    symbols[index],
-                                    fontSize = 21.sp
-                                )
+                                Text(symbols[index], fontSize = 21.sp)
                             },
                             label = {
                                 Text(item, fontSize = 11.sp)
@@ -225,29 +254,9 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
         Spacer(Modifier.height(24.dp))
 
-        SectionHeading("জ্ঞান ও অনুপ্রেরণা", "WISDOM")
+        SectionHeading("আজকের শাস্ত্রবাণী", "DAILY SCRIPTURE")
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = White),
-            border = BorderStroke(1.dp, Border)
-        ) {
-            Column(Modifier.padding(18.dp)) {
-                Text(
-                    "শ্রীমদ্ভগবদ্গীতা",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Navy
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "জ্ঞান, কর্ম ও ভক্তির আলোকে নিজেকে জানার এক চিরন্তন শিক্ষা।",
-                    fontSize = 13.sp,
-                    color = Muted
-                )
-            }
-        }
+        DailyScriptureCard()
 
         Spacer(Modifier.height(28.dp))
 
@@ -259,6 +268,82 @@ fun HomeScreen(modifier: Modifier = Modifier) {
         )
 
         Spacer(Modifier.height(20.dp))
+    }
+}
+
+@Composable
+fun DailyScriptureCard() {
+    val verse = remember {
+        val dayOfYear = Calendar.getInstance(
+            DhakaTimeZone
+        ).get(Calendar.DAY_OF_YEAR)
+
+        dailyVerses[dayOfYear % dailyVerses.size]
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        border = BorderStroke(1.dp, Border)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "✦  श्रीमद्भगवद्गीता  ✦",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = Gold
+            )
+
+            Spacer(Modifier.height(18.dp))
+
+            Text(
+                verse.sanskrit,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = 18.sp,
+                lineHeight = 31.sp,
+                fontWeight = FontWeight.Medium,
+                color = Navy,
+                textAlign = TextAlign.Center
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 18.dp),
+                color = Border
+            )
+
+            Text(
+                "বাংলা অর্থ",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Gold
+            )
+
+            Spacer(Modifier.height(9.dp))
+
+            Text(
+                verse.meaningBn,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = 14.sp,
+                lineHeight = 24.sp,
+                color = TextDark,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                verse.reference,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Navy
+            )
+        }
     }
 }
 
