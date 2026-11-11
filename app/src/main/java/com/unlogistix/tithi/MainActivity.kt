@@ -128,10 +128,8 @@ fun TithiApp() {
                     "জ্ঞানভাণ্ডার",
                     "হিন্দু ধর্ম, দেবদেবী, ঋষি, শাস্ত্র ও দর্শন সম্পর্কে যাচাইকৃত জ্ঞান এখানে সাজানো হবে।"
                 )
-                3 -> InfoScreen(
-                    Modifier.padding(padding),
-                    "আমার দিন",
-                    "তোমার দৈনন্দিন কাজ, অভ্যাস ও স্মরণিকা এখানে পরিচালনা করতে পারবে।"
+                3 -> MyDayScreen(
+                    Modifier.padding(padding)
                 )
             }
         }
@@ -278,7 +276,7 @@ fun DailyScriptureCard() {
             DhakaTimeZone
         ).get(Calendar.DAY_OF_YEAR)
 
-        dailyVerses[dayOfYear % dailyVerses.size]
+        dailyVerses[(dayOfYear - 1) % dailyVerses.size]
     }
 
     Card(
