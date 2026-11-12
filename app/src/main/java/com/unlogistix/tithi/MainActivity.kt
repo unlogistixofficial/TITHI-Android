@@ -100,20 +100,21 @@ fun TithiApp() {
                         "হোম",
                         "পঞ্জিকা",
                         "জ্ঞান",
-                        "আমার দিন"
+                        "আমার দিন",
+                        "উৎসব"
                     )
 
-                    val symbols = listOf("⌂", "◷", "✧", "☷")
+                    val symbols = listOf("⌂", "◷", "✧", "☷", "❀")
 
                     items.forEachIndexed { index, item ->
                         NavigationBarItem(
                             selected = selectedTab == index,
                             onClick = { selectedTab = index },
                             icon = {
-                                Text(symbols[index], fontSize = 21.sp)
+                                Text(symbols[index], fontSize = 20.sp)
                             },
                             label = {
-                                Text(item, fontSize = 11.sp)
+                                Text(item, fontSize = 10.sp)
                             }
                         )
                     }
@@ -123,14 +124,9 @@ fun TithiApp() {
             when (selectedTab) {
                 0 -> HomeScreen(Modifier.padding(padding))
                 1 -> PanchangScreen(Modifier.padding(padding))
-                2 -> InfoScreen(
-                    Modifier.padding(padding),
-                    "জ্ঞানভাণ্ডার",
-                    "হিন্দু ধর্ম, দেবদেবী, ঋষি, শাস্ত্র ও দর্শন সম্পর্কে যাচাইকৃত জ্ঞান এখানে সাজানো হবে।"
-                )
-                3 -> MyDayScreen(
-                    Modifier.padding(padding)
-                )
+                2 -> KnowledgeScreen(Modifier.padding(padding))
+                3 -> MyDayScreen(Modifier.padding(padding))
+                4 -> FestivalScreen(Modifier.padding(padding))
             }
         }
     }
