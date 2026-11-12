@@ -23,45 +23,31 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 
-private val PanchangCream = Color(0xFFF8F6F0)
-private val PanchangWhite = Color(0xFFFFFFFF)
-private val PanchangNavy = Color(0xFF244B70)
-private val PanchangText = Color(0xFF282D32)
-private val PanchangMuted = Color(0xFF777D83)
-private val PanchangSoftBlue = Color(0xFFEAF0F6)
-private val PanchangBorder = Color(0xFFE9E5DC)
-private val PanchangGold = Color(0xFF9B7842)
+private val PCream = Color(0xFFF8F6F0)
+private val PWhite = Color.White
+private val PNavy = Color(0xFF244B70)
+private val PText = Color(0xFF282D32)
+private val PMuted = Color(0xFF777D83)
+private val PBorder = Color(0xFFE9E5DC)
+private val PBlue = Color(0xFFEAF0F6)
+private val PGold = Color(0xFF9B7842)
 
-private data class PanchangCity(
+private data class PCity(
     val name: String,
     val latitude: Double,
     val longitude: Double
 )
 
-private val panchangCities = listOf(
-    PanchangCity("ঢাকা", 23.8103, 90.4125),
-    PanchangCity("সিলেট", 24.8949, 91.8687),
-    PanchangCity("চট্টগ্রাম", 22.3569, 91.7832),
-    PanchangCity("রাজশাহী", 24.3745, 88.6042),
-    PanchangCity("খুলনা", 22.8456, 89.5403),
-    PanchangCity("বরিশাল", 22.7010, 90.3535),
-    PanchangCity("রংপুর", 25.7439, 89.2752),
-    PanchangCity("ময়মনসিংহ", 24.7471, 90.4203)
+private val pCities = listOf(
+    PCity("ঢাকা", 23.8103, 90.4125),
+    PCity("সিলেট", 24.8949, 91.8687),
+    PCity("চট্টগ্রাম", 22.3569, 91.7832),
+    PCity("রাজশাহী", 24.3745, 88.6042),
+    PCity("খুলনা", 22.8456, 89.5403),
+    PCity("বরিশাল", 22.7010, 90.3535),
+    PCity("রংপুর", 25.7439, 89.2752),
+    PCity("ময়মনসিংহ", 24.7471, 90.4203)
 )
-
-private fun createPanchangCalendar(
-    year: Int,
-    month: Int,
-    day: Int
-): Calendar {
-    return Calendar.getInstance(
-        TimeZone.getTimeZone("Asia/Dhaka"),
-        Locale("bn", "BD")
-    ).apply {
-        set(year, month - 1, day, 12, 0, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
-}
 
 @Composable
 fun PanchangScreen(
@@ -69,42 +55,38 @@ fun PanchangScreen(
 ) {
     val context = LocalContext.current
 
-    val initialDate = remember {
+    val today = remember {
         Calendar.getInstance(
             TimeZone.getTimeZone("Asia/Dhaka")
         )
     }
 
-    var selectedYear by remember {
-        mutableIntStateOf(initialDate.get(Calendar.YEAR))
+    var year by remember {
+        mutableIntStateOf(today.get(Calendar.YEAR))
+    }
+    var month by remember {
+        mutableIntStateOf(today.get(Calendar.MONTH) + 1)
+    }
+    var day by remember {
+        mutableIntStateOf(today.get(Calendar.DAY_OF_MONTH))
     }
 
-    var selectedMonth by remember {
-        mutableIntStateOf(initialDate.get(Calendar.MONTH) + 1)
+    var cityIndex by remember {
+        mutableIntStateOf(0)
     }
 
-    var selectedDay by remember {
-        mutableIntStateOf(initialDate.get(Calendar.DAY_OF_MONTH))
-    }
-
-    var selectedCity by remember {
-        mutableStateOf(panchangCities[0])
-    }
-
-    var cityMenuExpanded by remember {
+    var menuExpanded by remember {
         mutableStateOf(false)
     }
 
-    val formattedDate = remember(
-        selectedYear,
-        selectedMonth,
-        selectedDay
-    ) {
-        val calendar = createPanchangCalendar(
-            selectedYear,
-            selectedMonth,
-            selectedDay
+    val city = pCities[cityIndex]
+
+    val dateText = remember(year, month, day) {
+        val calendar = Calendar.getInstance(
+            TimeZone.getTimeZone("Asia/Dhaka"),
+            Locale("bn", "BD")
         )
+        calendar.set(year, month - 1, day, 12, 0, 0)
 
         SimpleDateFormat(
             "EEEE, dd MMMM yyyy",
@@ -114,95 +96,74 @@ fun PanchangScreen(
         }.format(calendar.time)
     }
 
-    val panchangResult = remember(
-        selectedYear,
-        selectedMonth,
-        selectedDay,
-        selectedCity
-    ) {
+    val result = remember(year, month, day, cityIndex) {
         runCatching {
             PanchangCalculator.calculate(
-                year = selectedYear,
-                month = selectedMonth,
-                day = selectedDay,
-                latitude = selectedCity.latitude,
-                longitude = selectedCity.longitude
+                year = year,
+                month = month,
+                day = day,
+                latitude = city.latitude,
+                longitude = city.longitude
             )
         }
     }
 
-    val panchangData = panchangResult.getOrNull()
+    val data = result.getOrNull()
 
-    fun changeDate(amount: Int) {
-        val calendar = createPanchangCalendar(
-            selectedYear,
-            selectedMonth,
-            selectedDay
-        )
-
-        calendar.add(Calendar.DAY_OF_MONTH, amount)
-
-        selectedYear = calendar.get(Calendar.YEAR)
-        selectedMonth = calendar.get(Calendar.MONTH) + 1
-        selectedDay = calendar.get(Calendar.DAY_OF_MONTH)
-    }
-
-    fun selectToday() {
-        val today = Calendar.getInstance(
+    fun updateDate(amount: Int) {
+        val calendar = Calendar.getInstance(
             TimeZone.getTimeZone("Asia/Dhaka")
         )
+        calendar.set(year, month - 1, day, 12, 0, 0)
+        calendar.add(Calendar.DAY_OF_MONTH, amount)
 
-        selectedYear = today.get(Calendar.YEAR)
-        selectedMonth = today.get(Calendar.MONTH) + 1
-        selectedDay = today.get(Calendar.DAY_OF_MONTH)
+        year = calendar.get(Calendar.YEAR)
+        month = calendar.get(Calendar.MONTH) + 1
+        day = calendar.get(Calendar.DAY_OF_MONTH)
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PanchangCream)
+            .background(PCream)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 18.dp, vertical = 16.dp),
+            .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        // Header
-        Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "পঞ্জিকা",
-                fontSize = 27.sp,
-                fontWeight = FontWeight.Bold,
-                color = PanchangNavy
-            )
+        Text(
+            text = "পঞ্জিকা",
+            fontSize = 27.sp,
+            fontWeight = FontWeight.Bold,
+            color = PNavy
+        )
 
-            Text(
-                text = "তিথি, নক্ষত্র ও দৈনিক পঞ্জিকার তথ্য",
-                fontSize = 14.sp,
-                color = PanchangMuted
-            )
-        }
+        Text(
+            text = "তিথি, নক্ষত্র ও দৈনিক পঞ্জিকার তথ্য",
+            fontSize = 14.sp,
+            color = PMuted
+        )
 
-        // Date selector
+        // Date card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(
-                containerColor = PanchangWhite
+                containerColor = PWhite
             ),
-            border = BorderStroke(1.dp, PanchangBorder)
+            border = BorderStroke(1.dp, PBorder)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "তারিখ নির্বাচন",
-                    fontSize = 15.sp,
+                    "তারিখ নির্বাচন",
                     fontWeight = FontWeight.SemiBold,
-                    color = PanchangText
+                    color = PText
                 )
+
+                Spacer(Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -210,296 +171,252 @@ fun PanchangScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     OutlinedButton(
-                        onClick = { changeDate(-1) },
-                        contentPadding = PaddingValues(
-                            horizontal = 14.dp,
-                            vertical = 8.dp
-                        )
+                        onClick = { updateDate(-1) }
                     ) {
                         Text("‹", fontSize = 22.sp)
                     }
 
-                    Column(
-                        modifier = Modifier.weight(1f)
-                            .padding(horizontal = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = formattedDate,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = PanchangNavy,
-                            textAlign = TextAlign.Center
-                        )
-
-                        TextButton(
-                            onClick = {
-                                DatePickerDialog(
-                                    context,
-                                    { _, year, month, day ->
-                                        selectedYear = year
-                                        selectedMonth = month + 1
-                                        selectedDay = day
-                                    },
-                                    selectedYear,
-                                    selectedMonth - 1,
-                                    selectedDay
-                                ).show()
-                            }
-                        ) {
-                            Text(
-                                "ক্যালেন্ডার খুলুন",
-                                color = PanchangGold,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
+                    Text(
+                        text = dateText,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PNavy,
+                        textAlign = TextAlign.Center
+                    )
 
                     OutlinedButton(
-                        onClick = { changeDate(1) },
-                        contentPadding = PaddingValues(
-                            horizontal = 14.dp,
-                            vertical = 8.dp
-                        )
+                        onClick = { updateDate(1) }
                     ) {
                         Text("›", fontSize = 22.sp)
                     }
                 }
 
+                Spacer(Modifier.height(8.dp))
+
                 OutlinedButton(
-                    onClick = { selectToday() },
+                    onClick = {
+                        DatePickerDialog(
+                            context,
+                            { _, selectedYear, selectedMonth, selectedDay ->
+                                year = selectedYear
+                                month = selectedMonth + 1
+                                day = selectedDay
+                            },
+                            year,
+                            month - 1,
+                            day
+                        ).show()
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("আজকের দিন")
+                    Text("ক্যালেন্ডার থেকে তারিখ নিন")
+                }
+
+                TextButton(
+                    onClick = {
+                        year = today.get(Calendar.YEAR)
+                        month = today.get(Calendar.MONTH) + 1
+                        day = today.get(Calendar.DAY_OF_MONTH)
+                    }
+                ) {
+                    Text("আজকের দিন", color = PGold)
                 }
             }
         }
 
-        // City selector
+        // City selection
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(
-                containerColor = PanchangWhite
+                containerColor = PWhite
             ),
-            border = BorderStroke(1.dp, PanchangBorder)
+            border = BorderStroke(1.dp, PBorder)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "আপনার অবস্থান",
-                    fontSize = 15.sp,
+                    "আপনার শহর",
                     fontWeight = FontWeight.SemiBold,
-                    color = PanchangText
+                    color = PText
                 )
+
+                Spacer(Modifier.height(8.dp))
 
                 Box {
                     OutlinedButton(
                         onClick = {
-                            cityMenuExpanded = true
+                            menuExpanded = true
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = selectedCity.name,
-                            color = PanchangNavy
-                        )
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        Text("⌄", color = PanchangNavy)
+                        Text(city.name, color = PNavy)
+                        Spacer(Modifier.weight(1f))
+                        Text("⌄", color = PNavy)
                     }
 
                     DropdownMenu(
-                        expanded = cityMenuExpanded,
+                        expanded = menuExpanded,
                         onDismissRequest = {
-                            cityMenuExpanded = false
-                        },
-                        modifier = Modifier.background(PanchangWhite)
+                            menuExpanded = false
+                        }
                     ) {
-                        panchangCities.forEach { city ->
+                        pCities.forEachIndexed { index, item ->
                             DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = city.name,
-                                        color = PanchangText
-                                    )
-                                },
+                                text = { Text(item.name) },
                                 onClick = {
-                                    selectedCity = city
-                                    cityMenuExpanded = false
+                                    cityIndex = index
+                                    menuExpanded = false
                                 }
                             )
                         }
                     }
                 }
-
-                Text(
-                    text = "অবস্থান পরিবর্তন করলে সূর্যোদয় ও সূর্যাস্তের হিসাবও পরিবর্তিত হবে।",
-                    fontSize = 12.sp,
-                    color = PanchangMuted
-                )
             }
         }
 
-        // Calculation result
-        if (panchangData != null) {
+        if (data != null) {
 
-            // Main Tithi card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = PanchangNavy
+                    containerColor = PNavy
                 )
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .padding(22.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "আজকের তিথি",
-                        fontSize = 14.sp,
+                        "আজকের তিথি",
                         color = Color.White.copy(alpha = 0.8f)
                     )
 
+                    Spacer(Modifier.height(8.dp))
+
                     Text(
-                        text = panchangData.tithi,
+                        data.tithi,
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = PWhite
                     )
 
                     Text(
-                        text = panchangData.paksha,
+                        data.paksha,
                         fontSize = 16.sp,
                         color = Color(0xFFE7D4A9)
                     )
                 }
             }
 
-            // Panchang information
             Text(
-                text = "পঞ্জিকার বিবরণ",
+                "পঞ্জিকার বিবরণ",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = PanchangNavy
+                color = PNavy
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                PanchangInfoCard(
-                    title = "নক্ষত্র",
-                    value = panchangData.nakshatra,
-                    modifier = Modifier.weight(1f)
+                PanchangValueCard(
+                    "নক্ষত্র",
+                    data.nakshatra,
+                    Modifier.weight(1f)
                 )
-
-                PanchangInfoCard(
-                    title = "যোগ",
-                    value = panchangData.yoga,
-                    modifier = Modifier.weight(1f)
+                PanchangValueCard(
+                    "যোগ",
+                    data.yoga,
+                    Modifier.weight(1f)
                 )
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                PanchangInfoCard(
-                    title = "করণ",
-                    value = panchangData.karana,
-                    modifier = Modifier.weight(1f)
+                PanchangValueCard(
+                    "করণ",
+                    data.karana,
+                    Modifier.weight(1f)
                 )
-
-                PanchangInfoCard(
-                    title = "পক্ষ",
-                    value = panchangData.paksha,
-                    modifier = Modifier.weight(1f)
+                PanchangValueCard(
+                    "পক্ষ",
+                    data.paksha,
+                    Modifier.weight(1f)
                 )
             }
 
-            // Sunrise and sunset
             Text(
-                text = "সূর্যের সময়",
+                "সূর্যের সময়",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = PanchangNavy
+                color = PNavy
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                PanchangInfoCard(
-                    title = "সূর্যোদয়",
-                    value = panchangData.sunrise,
-                    modifier = Modifier.weight(1f)
+                PanchangValueCard(
+                    "সূর্যোদয়",
+                    data.sunrise,
+                    Modifier.weight(1f)
                 )
-
-                PanchangInfoCard(
-                    title = "সূর্যাস্ত",
-                    value = panchangData.sunset,
-                    modifier = Modifier.weight(1f)
+                PanchangValueCard(
+                    "সূর্যাস্ত",
+                    data.sunset,
+                    Modifier.weight(1f)
                 )
             }
 
-            // Calculation note
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = PanchangSoftBlue
+                    containerColor = PBlue
                 )
             ) {
                 Text(
-                    text = panchangData.calculationNote,
+                    text = data.calculationNote,
                     modifier = Modifier.padding(14.dp),
                     fontSize = 12.sp,
-                    color = PanchangNavy,
+                    color = PNavy,
                     textAlign = TextAlign.Center
                 )
             }
 
         } else {
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = PanchangWhite
+                    containerColor = PWhite
                 ),
-                border = BorderStroke(1.dp, PanchangBorder)
+                border = BorderStroke(1.dp, PBorder)
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "হিসাব করা যায়নি",
+                        "হিসাব করা যায়নি",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PanchangNavy
+                        color = PNavy
                     )
 
-                    Text(
-                        text = "এই তারিখের পঞ্জিকার তথ্য গণনা করতে সমস্যা হয়েছে।",
-                        fontSize = 13.sp,
-                        color = PanchangMuted,
-                        textAlign = TextAlign.Center
-                    )
+                    Spacer(Modifier.height(8.dp))
 
                     Text(
-                        text = panchangResult.exceptionOrNull()
-                            ?.message ?: "অজানা সমস্যা",
-                        fontSize = 11.sp,
+                        result.exceptionOrNull()?.message
+                            ?: "অজানা সমস্যা",
+                        fontSize = 12.sp,
                         color = Color(0xFF9B4141),
                         textAlign = TextAlign.Center
                     )
@@ -507,12 +424,12 @@ fun PanchangScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(Modifier.height(12.dp))
     }
 }
 
 @Composable
-private fun PanchangInfoCard(
+private fun PanchangValueCard(
     title: String,
     value: String,
     modifier: Modifier = Modifier
@@ -521,27 +438,29 @@ private fun PanchangInfoCard(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = PanchangWhite
+            containerColor = PWhite
         ),
-        border = BorderStroke(1.dp, PanchangBorder)
+        border = BorderStroke(1.dp, PBorder)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth()
-                .padding(vertical = 18.dp, horizontal = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = title,
+                title,
                 fontSize = 13.sp,
-                color = PanchangMuted
+                color = PMuted
             )
 
+            Spacer(Modifier.height(8.dp))
+
             Text(
-                text = value,
-                fontSize = 17.sp,
+                value,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = PanchangNavy,
+                color = PNavy,
                 textAlign = TextAlign.Center
             )
         }
