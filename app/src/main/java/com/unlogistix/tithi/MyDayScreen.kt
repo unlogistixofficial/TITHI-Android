@@ -7,14 +7,19 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -29,25 +34,24 @@ import java.util.TimeZone
 import java.util.UUID
 
 private val MyCream = Color(0xFFF8F6F0)
-private val MyWhite = Color.White
+private val MyWhite = Color(0xFFFFFFFF)
 private val MyNavy = Color(0xFF244B70)
 private val MyText = Color(0xFF282D32)
-private val MyMuted = Color(0xFF777D83)
+private val MyMuted = Color(0xFF858A90)
 private val MyBlue = Color(0xFFEAF0F6)
-
+private val MyLavender = Color(0xFFEDE5F8)
+private val MyRed = Color(0xFFB44B45)
 private val myTimeZone = TimeZone.getTimeZone("Asia/Dhaka")
 
-private fun myToday(): String {
-    return SimpleDateFormat("yyyy-MM-dd", Locale.US)
+private fun myToday(): String =
+    SimpleDateFormat("yyyy-MM-dd", Locale.US)
         .apply { timeZone = myTimeZone }
         .format(Date())
-}
 
-private fun myFormatDate(date: Date): String {
-    return SimpleDateFormat("yyyy-MM-dd", Locale.US)
+private fun myFormatDate(date: Date): String =
+    SimpleDateFormat("yyyy-MM-dd", Locale.US)
         .apply { timeZone = myTimeZone }
         .format(date)
-}
 
 private fun shiftMyDate(date: String, amount: Int): String {
     val parser = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -56,6 +60,29 @@ private fun shiftMyDate(date: String, amount: Int): String {
     calendar.time = parser.parse(date) ?: Date()
     calendar.add(Calendar.DAY_OF_MONTH, amount)
     return myFormatDate(calendar.time)
+}
+
+private fun formatMyTime(time: String): String {
+    val parts = time.split(":")
+    val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
+    val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    val amPm = if (hour < 12) "AM" else "PM"
+    val displayHour = when {
+        hour % 12 == 0 -> 12
+        else -> hour % 12
+    }
+    return String.format(Locale.US, "%02d:%02d %s", displayHour, minute, amPm)
+}
+
+private fun formatMyDisplayDate(date: String): String {
+    return try {
+        val parser = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        parser.timeZone = myTimeZone
+        val parsed = parser.parse(date) ?: return date
+        SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(parsed)
+    } catch (_: Exception) {
+        date
+    }
 }
 
 data class MyDayTask(
@@ -84,7 +111,6 @@ internal object MyDayStorage {
 
     fun loadTasks(context: android.content.Context): List<MyDayTask> {
         val prefs = context.getSharedPreferences(PREFS, 0)
-
         val array = try {
             JSONArray(prefs.getString(TASKS, "[]") ?: "[]")
         } catch (_: Exception) {
@@ -94,7 +120,6 @@ internal object MyDayStorage {
         return buildList {
             for (i in 0 until array.length()) {
                 val item = array.optJSONObject(i) ?: continue
-
                 add(
                     MyDayTask(
                         id = item.optString("id", UUID.randomUUID().toString()),
@@ -112,12 +137,8 @@ internal object MyDayStorage {
         }
     }
 
-    fun saveTasks(
-        context: android.content.Context,
-        tasks: List<MyDayTask>
-    ) {
+    fun saveTasks(context: android.content.Context, tasks: List<MyDayTask>) {
         val array = JSONArray()
-
         tasks.forEach { task ->
             array.put(
                 JSONObject().apply {
@@ -133,16 +154,12 @@ internal object MyDayStorage {
                 }
             )
         }
-
         context.getSharedPreferences(PREFS, 0)
-            .edit()
-            .putString(TASKS, array.toString())
-            .apply()
+            .edit().putString(TASKS, array.toString()).apply()
     }
 
     fun loadHabits(context: android.content.Context): List<MyDayHabit> {
         val prefs = context.getSharedPreferences(PREFS, 0)
-
         val array = try {
             JSONArray(prefs.getString(HABITS, "[]") ?: "[]")
         } catch (_: Exception) {
@@ -153,7 +170,6 @@ internal object MyDayStorage {
             for (i in 0 until array.length()) {
                 val item = array.optJSONObject(i) ?: continue
                 val dates = mutableListOf<String>()
-
                 val history = item.optJSONArray("completedDates")
 
                 if (history != null) {
@@ -177,18 +193,11 @@ internal object MyDayStorage {
         }
     }
 
-    fun saveHabits(
-        context: android.content.Context,
-        habits: List<MyDayHabit>
-    ) {
+    fun saveHabits(context: android.content.Context, habits: List<MyDayHabit>) {
         val array = JSONArray()
-
         habits.forEach { habit ->
             val history = JSONArray()
-
-            habit.completedDates.distinct().sorted().forEach {
-                history.put(it)
-            }
+            habit.completedDates.distinct().sorted().forEach { history.put(it) }
 
             array.put(
                 JSONObject().apply {
@@ -199,17 +208,13 @@ internal object MyDayStorage {
                 }
             )
         }
-
         context.getSharedPreferences(PREFS, 0)
-            .edit()
-            .putString(HABITS, array.toString())
-            .apply()
+            .edit().putString(HABITS, array.toString()).apply()
     }
 }
 
 @Composable
 fun MyDayScreen(modifier: Modifier = Modifier) {
-
     val context = LocalContext.current
 
     val tasks = remember {
@@ -245,12 +250,8 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
     val today = myToday()
     val todayTasks = tasks.filter { it.dueDate == today }
     val completedToday = todayTasks.count { it.completed }
-
-    val progress = if (todayTasks.isEmpty()) {
-        0f
-    } else {
-        completedToday.toFloat() / todayTasks.size.toFloat()
-    }
+    val progress = if (todayTasks.isEmpty()) 0f
+    else completedToday.toFloat() / todayTasks.size.toFloat()
 
     Column(
         modifier = modifier
@@ -258,155 +259,170 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
             .background(MyCream)
             .padding(horizontal = 18.dp)
     ) {
+        Spacer(Modifier.height(18.dp))
 
-        Spacer(Modifier.height(20.dp))
+        Text(
+            "TITHI",
+            color = MyMuted,
+            style = MaterialTheme.typography.labelLarge
+        )
 
-        Text("TITHI", color = MyMuted)
         Text(
             "আমার দিন",
             color = MyNavy,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
+
         Text(
             "পরিকল্পনা, অভ্যাস ও প্রতিদিনের অগ্রগতি",
             color = MyMuted,
-            style = MaterialTheme.typography.bodySmall
+            style = MaterialTheme.typography.bodyMedium
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(18.dp))
 
         Card(
-            colors = CardDefaults.cardColors(containerColor = MyWhite),
-            shape = RoundedCornerShape(18.dp)
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(containerColor = MyWhite)
         ) {
-            Column(Modifier.padding(16.dp)) {
-
+            Column(Modifier.padding(18.dp)) {
                 Row(
                     Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "আজকের অগ্রগতি",
-                        color = MyNavy,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Column {
+                        Text(
+                            "আজকের অগ্রগতি",
+                            color = MyNavy,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            "$completedToday / ${todayTasks.size} টি কাজ সম্পন্ন",
+                            color = MyMuted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
 
                     Text(
                         "${(progress * 100).toInt()}%",
                         color = MyNavy,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(16.dp))
 
                 LinearProgressIndicator(
                     progress = progress,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp),
+                        .height(9.dp)
+                        .clip(CircleShape),
                     color = MyNavy,
                     trackColor = MyBlue
                 )
 
-                Spacer(Modifier.height(7.dp))
+                Spacer(Modifier.height(8.dp))
 
                 Text(
-                    "$completedToday / ${todayTasks.size} টি কাজ সম্পন্ন",
+                    if (todayTasks.isEmpty()) "আজকের পরিকল্পনা শুরু করো"
+                    else if (progress == 1f) "আজকের সব কাজ সম্পন্ন হয়েছে!"
+                    else "ধীরে ধীরে এগিয়ে চলো",
                     color = MyMuted,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(18.dp))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFFEDEBE5))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
             listOf("আজ", "সব", "সম্পন্ন", "রিপোর্ট").forEach { tab ->
-                FilterChip(
-                    selected = selectedTab == tab,
-                    onClick = { selectedTab = tab },
-                    label = { Text(tab) }
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(if (selectedTab == tab) MyWhite else Color.Transparent)
+                        .clickable { selectedTab = tab }
+                        .padding(vertical = 11.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        tab,
+                        color = if (selectedTab == tab) MyNavy else MyMuted,
+                        fontWeight = if (selectedTab == tab) FontWeight.Bold
+                        else FontWeight.Medium,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
         if (selectedTab == "রিপোর্ট") {
-
             MyDayReport(
                 tasks = tasks.toList(),
                 habits = habits.toList()
             )
-
         } else {
+            val visibleTasks = when (selectedTab) {
+                "আজ" -> tasks.filter { it.dueDate == today }
+                "সম্পন্ন" -> tasks.filter { it.completed }
+                else -> tasks.toList()
+            }.sortedWith(
+                compareBy<MyDayTask> { it.completed }
+                    .thenBy { it.dueDate }
+                    .thenBy { it.dueTime }
+            )
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(11.dp)
             ) {
-
                 item {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "কাজের তালিকা",
-                            color = MyText,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        TextButton(
-                            onClick = {
-                                editingTask = null
-                                showTaskEditor = true
-                            }
-                        ) {
-                            Text("+ কাজ যোগ", color = MyNavy)
+                    SectionHeader(
+                        title = "কাজের তালিকা",
+                        subtitle = "${visibleTasks.size} টি কাজ",
+                        action = "কাজ যোগ করুন",
+                        onAction = {
+                            editingTask = null
+                            showTaskEditor = true
                         }
-                    }
+                    )
                 }
-
-                val visibleTasks = when (selectedTab) {
-                    "আজ" -> tasks.filter { it.dueDate == today }
-                    "সম্পন্ন" -> tasks.filter { it.completed }
-                    else -> tasks.toList()
-                }.sortedWith(
-                    compareBy<MyDayTask> { it.completed }
-                        .thenBy { it.dueDate }
-                        .thenBy { it.dueTime }
-                )
 
                 if (visibleTasks.isEmpty()) {
                     item {
-                        EmptyMyDayCard("এখানে এখনো কোনো কাজ নেই।")
+                        EmptyMyDayCard(
+                            "এখানে এখনো কোনো কাজ নেই।",
+                            "নতুন কাজ যোগ করে তোমার দিনটি সাজিয়ে নাও।"
+                        )
                     }
                 }
 
-                items(
-                    items = visibleTasks,
-                    key = { it.id }
-                ) { task ->
-
+                items(visibleTasks, key = { it.id }) { task ->
                     MyDayTaskCard(
                         task = task,
-
                         onToggle = { checked ->
-
-                            val index = tasks.indexOfFirst {
-                                it.id == task.id
-                            }
-
+                            val index = tasks.indexOfFirst { it.id == task.id }
                             if (index >= 0) {
                                 val updated = task.copy(
                                     completed = checked,
                                     completedDate = if (checked) today else ""
                                 )
-
                                 tasks[index] = updated
 
                                 if (checked) {
@@ -416,12 +432,10 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
                                 }
                             }
                         },
-
                         onEdit = {
                             editingTask = task
                             showTaskEditor = true
                         },
-
                         onDelete = {
                             ReminderScheduler.cancel(context, task.id)
                             tasks.removeAll { it.id == task.id }
@@ -429,112 +443,70 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
                     )
                 }
 
-                item {
-                    Spacer(Modifier.height(12.dp))
-
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "দৈনিক অভ্যাস",
-                            color = MyText,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        TextButton(
-                            onClick = {
+                if (selectedTab != "সম্পন্ন") {
+                    item {
+                        Spacer(Modifier.height(10.dp))
+                        SectionHeader(
+                            title = "দৈনিক অভ্যাস",
+                            subtitle = "${habits.size} টি অভ্যাস",
+                            action = "অভ্যাস যোগ করুন",
+                            onAction = {
                                 editingHabit = null
                                 showHabitEditor = true
                             }
-                        ) {
-                            Text("+ অভ্যাস যোগ", color = MyNavy)
+                        )
+                    }
+
+                    if (habits.isEmpty()) {
+                        item {
+                            EmptyMyDayCard(
+                                "এখনো কোনো অভ্যাস যোগ করা হয়নি।",
+                                "প্রতিদিনের ভালো অভ্যাস গড়ে তুলতে এখানে যোগ করো।"
+                            )
                         }
                     }
-                }
 
-                if (habits.isEmpty()) {
-                    item {
-                        EmptyMyDayCard(
-                            "নতুন অভ্যাস যোগ করে প্রতিদিনের অগ্রগতি রাখো।"
+                    items(habits.toList(), key = { it.id }) { habit ->
+                        MyDayHabitCard(
+                            habit = habit,
+                            today = today,
+                            onToggle = { checked ->
+                                val index = habits.indexOfFirst { it.id == habit.id }
+                                if (index >= 0) {
+                                    val dates = habit.completedDates.toMutableSet()
+                                    if (checked) dates.add(today) else dates.remove(today)
+                                    habits[index] = habit.copy(
+                                        completedDates = dates.sorted()
+                                    )
+                                }
+                            },
+                            onEdit = {
+                                editingHabit = habit
+                                showHabitEditor = true
+                            },
+                            onDelete = {
+                                habits.removeAll { it.id == habit.id }
+                            }
                         )
                     }
                 }
 
-                items(
-                    items = habits.toList(),
-                    key = { it.id }
-                ) { habit ->
-
-                    MyDayHabitCard(
-                        habit = habit,
-                        today = today,
-
-                        onToggle = { checked ->
-
-                            val index = habits.indexOfFirst {
-                                it.id == habit.id
-                            }
-
-                            if (index >= 0) {
-                                val dates = habit.completedDates.toMutableSet()
-
-                                if (checked) {
-                                    dates.add(today)
-                                } else {
-                                    dates.remove(today)
-                                }
-
-                                habits[index] = habit.copy(
-                                    completedDates = dates.sorted()
-                                )
-                            }
-                        },
-
-                        onEdit = {
-                            editingHabit = habit
-                            showHabitEditor = true
-                        },
-
-                        onDelete = {
-                            habits.removeAll { it.id == habit.id }
-                        }
-                    )
-                }
-
-                item {
-                    Spacer(Modifier.height(24.dp))
-                }
+                item { Spacer(Modifier.height(24.dp)) }
             }
         }
     }
 
     if (showTaskEditor) {
-
         TaskEditorDialog(
             initial = editingTask,
-
-            onDismiss = {
-                showTaskEditor = false
-            },
-
+            onDismiss = { showTaskEditor = false },
             onSave = { task ->
-
-                val index = tasks.indexOfFirst {
-                    it.id == task.id
-                }
-
-                if (index >= 0) {
-                    tasks[index] = task
-                } else {
-                    tasks.add(task)
-                }
+                val index = tasks.indexOfFirst { it.id == task.id }
+                if (index >= 0) tasks[index] = task else tasks.add(task)
 
                 ReminderScheduler.cancel(context, task.id)
 
                 if (task.reminder && !task.completed) {
-
                     if (
                         Build.VERSION.SDK_INT >= 33 &&
                         context.checkSelfPermission(
@@ -545,39 +517,60 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
                             android.Manifest.permission.POST_NOTIFICATIONS
                         )
                     }
-
                     ReminderScheduler.schedule(context, task)
                 }
-
                 showTaskEditor = false
             }
         )
     }
 
     if (showHabitEditor) {
-
         HabitEditorDialog(
             initial = editingHabit,
-
-            onDismiss = {
-                showHabitEditor = false
-            },
-
+            onDismiss = { showHabitEditor = false },
             onSave = { habit ->
-
-                val index = habits.indexOfFirst {
-                    it.id == habit.id
-                }
-
-                if (index >= 0) {
-                    habits[index] = habit
-                } else {
-                    habits.add(habit)
-                }
-
+                val index = habits.indexOfFirst { it.id == habit.id }
+                if (index >= 0) habits[index] = habit else habits.add(habit)
                 showHabitEditor = false
             }
         )
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    subtitle: String,
+    action: String,
+    onAction: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                title,
+                color = MyText,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                subtitle,
+                color = MyMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        TextButton(onClick = onAction) {
+            Text(
+                "+ $action",
+                color = MyNavy,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
@@ -588,31 +581,45 @@ private fun MyDayTaskCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    val priorityColor = when (task.priority) {
+        "জরুরি" -> MyRed
+        "গুরুত্বপূর্ণ" -> Color(0xFFC28B37)
+        else -> MyNavy
+    }
+
     Card(
-        colors = CardDefaults.cardColors(containerColor = MyWhite),
-        shape = RoundedCornerShape(16.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MyWhite)
     ) {
         Row(
-            Modifier
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(start = 9.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Checkbox(
                 checked = task.completed,
-                onCheckedChange = onToggle
+                onCheckedChange = onToggle,
+                colors = CheckboxDefaults.colors(checkedColor = MyNavy)
             )
 
-            Column(Modifier.weight(1f)) {
-
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp)
+            ) {
                 Text(
                     task.title,
-                    color = MyText,
-                    fontWeight = FontWeight.SemiBold
+                    color = if (task.completed) MyMuted else MyText,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleSmall
                 )
 
                 if (task.note.isNotBlank()) {
+                    Spacer(Modifier.height(3.dp))
                     Text(
                         task.note,
                         color = MyMuted,
@@ -620,23 +627,78 @@ private fun MyDayTaskCard(
                     )
                 }
 
-                Text(
-                    "${task.dueDate} • ${task.dueTime} • ${task.priority}" +
-                        if (task.reminder) " • Reminder" else "",
-                    color = MyMuted,
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
+                Spacer(Modifier.height(7.dp))
 
-            Column {
-                TextButton(onClick = onEdit) {
-                    Text("Edit")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        formatMyDisplayDate(task.dueDate),
+                        color = MyMuted,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Text("•", color = MyMuted)
+                    Text(
+                        formatMyTime(task.dueTime),
+                        color = MyNavy,
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelSmall
+                    )
                 }
 
-                TextButton(onClick = onDelete) {
+                Spacer(Modifier.height(7.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(priorityColor)
+                    )
                     Text(
-                        "Delete",
-                        color = Color(0xFFB44B45)
+                        task.priority,
+                        color = priorityColor,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    if (task.reminder) {
+                        Text("• Reminder চালু", color = MyMuted,
+                            style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+
+            Box {
+                Text(
+                    "⋮",
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable { menuExpanded = true }
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    color = MyNavy,
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("সম্পাদনা") },
+                        onClick = {
+                            menuExpanded = false
+                            onEdit()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("মুছে ফেলুন", color = MyRed) },
+                        onClick = {
+                            menuExpanded = false
+                            onDelete()
+                        }
                     )
                 }
             }
@@ -652,57 +714,81 @@ private fun MyDayHabitCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     val done = today in habit.completedDates
     val streak = calculateHabitStreak(habit.completedDates, today)
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = MyWhite),
-        shape = RoundedCornerShape(16.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MyWhite)
     ) {
         Row(
-            Modifier
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(start = 9.dp, end = 12.dp, top = 11.dp, bottom = 11.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Checkbox(
                 checked = done,
-                onCheckedChange = onToggle
+                onCheckedChange = onToggle,
+                colors = CheckboxDefaults.colors(checkedColor = MyNavy)
             )
 
-            Column(Modifier.weight(1f)) {
-
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp)
+            ) {
                 Text(
                     habit.title,
                     color = MyText,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleSmall
                 )
-
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    "ধারাবাহিকতা: $streak দিন • মোট: ${habit.completedDates.size} দিন",
+                    "ধারাবাহিকতা: $streak দিন  •  মোট: ${habit.completedDates.size} দিন",
                     color = MyMuted,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
 
-            Column {
-                TextButton(onClick = onEdit) {
-                    Text("Edit")
-                }
-
-                TextButton(onClick = onDelete) {
-                    Text("Delete", color = Color(0xFFB44B45))
+            Box {
+                Text(
+                    "⋮",
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable { menuExpanded = true }
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    color = MyNavy,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("সম্পাদনা") },
+                        onClick = {
+                            menuExpanded = false
+                            onEdit()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("মুছে ফেলুন", color = MyRed) },
+                        onClick = {
+                            menuExpanded = false
+                            onDelete()
+                        }
+                    )
                 }
             }
         }
     }
 }
 
-private fun calculateHabitStreak(
-    dates: List<String>,
-    today: String
-): Int {
+private fun calculateHabitStreak(dates: List<String>, today: String): Int {
     val set = dates.toSet()
     var checkDate = if (today in set) today else shiftMyDate(today, -1)
     var count = 0
@@ -711,21 +797,29 @@ private fun calculateHabitStreak(
         count++
         checkDate = shiftMyDate(checkDate, -1)
     }
-
     return count
 }
 
 @Composable
-private fun EmptyMyDayCard(message: String) {
+private fun EmptyMyDayCard(message: String, subtitle: String) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MyWhite),
-        shape = RoundedCornerShape(14.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MyWhite)
     ) {
-        Text(
-            message,
-            modifier = Modifier.padding(18.dp),
-            color = MyMuted
-        )
+        Column(Modifier.padding(20.dp)) {
+            Text(
+                message,
+                color = MyText,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                subtitle,
+                color = MyMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 
@@ -743,43 +837,60 @@ private fun TaskEditorDialog(
     var time by remember { mutableStateOf(initial?.dueTime ?: "09:00") }
     var priority by remember { mutableStateOf(initial?.priority ?: "সাধারণ") }
     var reminder by remember { mutableStateOf(initial?.reminder ?: false) }
-    var expanded by remember { mutableStateOf(false) }
+    var priorityExpanded by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-
+        shape = RoundedCornerShape(24.dp),
+        containerColor = MyCream,
         title = {
-            Text(if (initial == null) "নতুন কাজ" else "কাজ সম্পাদনা")
+            Column {
+                Text(
+                    if (initial == null) "নতুন কাজ" else "কাজ সম্পাদনা",
+                    color = MyNavy,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "তোমার কাজের বিবরণ ঠিক করো",
+                    color = MyMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         },
-
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(9.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 440.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-
                 OutlinedTextField(
                     value = title,
                     onValueChange = {
                         title = it
                         error = ""
                     },
+                    modifier = Modifier.fillMaxWidth(),
                     label = { Text("কাজের নাম") },
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(13.dp)
                 )
 
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("বিস্তারিত (ঐচ্ছিক)") }
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("বিস্তারিত (ঐচ্ছিক)") },
+                    minLines = 2,
+                    shape = RoundedCornerShape(13.dp)
                 )
 
                 OutlinedButton(
                     onClick = {
-
                         val calendar = Calendar.getInstance(myTimeZone)
                         val parts = date.split("-")
-
                         if (parts.size == 3) {
                             calendar.set(
                                 parts[0].toIntOrNull() ?: calendar.get(Calendar.YEAR),
@@ -791,13 +902,9 @@ private fun TaskEditorDialog(
                         DatePickerDialog(
                             context,
                             { _, year, month, day ->
-
                                 date = String.format(
-                                    Locale.US,
-                                    "%04d-%02d-%02d",
-                                    year,
-                                    month + 1,
-                                    day
+                                    Locale.US, "%04d-%02d-%02d",
+                                    year, month + 1, day
                                 )
                             },
                             calendar.get(Calendar.YEAR),
@@ -805,87 +912,98 @@ private fun TaskEditorDialog(
                             calendar.get(Calendar.DAY_OF_MONTH)
                         ).show()
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(13.dp)
                 ) {
-                    Text("তারিখ: $date")
+                    Text("তারিখ: ${formatMyDisplayDate(date)}")
                 }
 
                 OutlinedButton(
                     onClick = {
-
                         val parts = time.split(":")
-
                         TimePickerDialog(
                             context,
                             { _, hour, minute ->
-
-                                time = String.format(
-                                    Locale.US,
-                                    "%02d:%02d",
-                                    hour,
-                                    minute
-                                )
+                                time = String.format(Locale.US, "%02d:%02d", hour, minute)
                             },
                             parts.getOrNull(0)?.toIntOrNull() ?: 9,
                             parts.getOrNull(1)?.toIntOrNull() ?: 0,
-                            true
+                            false
                         ).show()
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(13.dp)
                 ) {
-                    Text("সময়: $time")
+                    Text(
+                        "সময়: ${formatMyTime(time)}",
+                        color = MyNavy,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
                 Box {
                     OutlinedButton(
-                        onClick = { expanded = true },
-                        modifier = Modifier.fillMaxWidth()
+                        onClick = { priorityExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(13.dp)
                     ) {
                         Text("অগ্রাধিকার: $priority")
                     }
 
                     DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        expanded = priorityExpanded,
+                        onDismissRequest = { priorityExpanded = false }
                     ) {
                         listOf("সাধারণ", "গুরুত্বপূর্ণ", "জরুরি").forEach {
                             DropdownMenuItem(
                                 text = { Text(it) },
                                 onClick = {
                                     priority = it
-                                    expanded = false
+                                    priorityExpanded = false
                                 }
                             )
                         }
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = reminder,
-                        onCheckedChange = { reminder = it }
-                    )
-
-                    Text("এই কাজের জন্য Reminder")
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MyWhite),
+                    shape = RoundedCornerShape(13.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { reminder = !reminder }
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = reminder,
+                            onCheckedChange = { reminder = it },
+                            colors = CheckboxDefaults.colors(checkedColor = MyNavy)
+                        )
+                        Column {
+                            Text("Reminder চালু রাখুন", color = MyText)
+                            Text(
+                                "নির্ধারিত সময়ে বিজ্ঞপ্তি পাবেন",
+                                color = MyMuted,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
                 }
 
                 if (error.isNotBlank()) {
-                    Text(
-                        error,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    Text(error, color = MaterialTheme.colorScheme.error)
                 }
             }
         },
-
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
-
                     if (title.isBlank()) {
                         error = "কাজের নাম লিখতে হবে।"
                     } else {
-
                         onSave(
                             MyDayTask(
                                 id = initial?.id ?: UUID.randomUUID().toString(),
@@ -900,15 +1018,16 @@ private fun TaskEditorDialog(
                             )
                         )
                     }
-                }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MyNavy),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("সংরক্ষণ")
             }
         },
-
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("বাতিল")
+                Text("বাতিল", color = MyMuted)
             }
         }
     )
@@ -924,24 +1043,28 @@ private fun HabitEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-
+        shape = RoundedCornerShape(24.dp),
+        containerColor = MyCream,
         title = {
-            Text(if (initial == null) "নতুন অভ্যাস" else "অভ্যাস সম্পাদনা")
+            Text(
+                if (initial == null) "নতুন অভ্যাস" else "অভ্যাস সম্পাদনা",
+                color = MyNavy,
+                fontWeight = FontWeight.Bold
+            )
         },
-
         text = {
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
+                modifier = Modifier.fillMaxWidth(),
                 label = { Text("অভ্যাসের নাম") },
-                singleLine = true
+                singleLine = true,
+                shape = RoundedCornerShape(13.dp)
             )
         },
-
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
-
                     if (title.isNotBlank()) {
                         onSave(
                             MyDayHabit(
@@ -951,15 +1074,16 @@ private fun HabitEditorDialog(
                             )
                         )
                     }
-                }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MyNavy),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("সংরক্ষণ")
             }
         },
-
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("বাতিল")
+                Text("বাতিল", color = MyMuted)
             }
         }
     )
@@ -971,7 +1095,6 @@ private fun MyDayReport(
     habits: List<MyDayHabit>
 ) {
     var period by remember { mutableStateOf("সাপ্তাহিক") }
-
     val today = myToday()
 
     val start = if (period == "সাপ্তাহিক") {
@@ -982,10 +1105,8 @@ private fun MyDayReport(
 
         val day = calendar.get(Calendar.DAY_OF_WEEK)
         val difference = if (day == Calendar.SUNDAY) 6 else day - Calendar.MONDAY
-
         calendar.add(Calendar.DAY_OF_MONTH, -difference)
         myFormatDate(calendar.time)
-
     } else {
         today.substring(0, 8) + "01"
     }
@@ -994,86 +1115,104 @@ private fun MyDayReport(
         shiftMyDate(start, 6)
     } else {
         val calendar = Calendar.getInstance(myTimeZone)
-
         calendar.time = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             .apply { timeZone = myTimeZone }
             .parse(start) ?: Date()
-
         calendar.set(
             Calendar.DAY_OF_MONTH,
             calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
         )
-
         myFormatDate(calendar.time)
     }
 
-    val periodTasks = tasks.filter {
-        it.dueDate >= start && it.dueDate <= end
-    }
-
+    val periodTasks = tasks.filter { it.dueDate >= start && it.dueDate <= end }
     val completed = periodTasks.count { it.completed }
     val pending = periodTasks.size - completed
-
-    val percent = if (periodTasks.isEmpty()) {
-        0
-    } else {
-        completed * 100 / periodTasks.size
-    }
+    val percent = if (periodTasks.isEmpty()) 0
+    else completed * 100 / periodTasks.size
 
     val habitCompletions = habits.sumOf { habit ->
         habit.completedDates.count { it >= start && it <= end }
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(11.dp)
     ) {
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("সাপ্তাহিক", "মাসিক").forEach { option ->
+                    FilterChip(
+                        selected = period == option,
+                        onClick = { period = option },
+                        label = { Text(option) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MyLavender,
+                            selectedLabelColor = MyNavy
+                        )
+                    )
+                }
+            }
+        }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
-            FilterChip(
-                selected = period == "সাপ্তাহিক",
-                onClick = { period = "সাপ্তাহিক" },
-                label = { Text("সাপ্তাহিক") }
-            )
-
-            FilterChip(
-                selected = period == "মাসিক",
-                onClick = { period = "মাসিক" },
-                label = { Text("মাসিক") }
+        item {
+            Text(
+                "$start  —  $end",
+                color = MyMuted,
+                style = MaterialTheme.typography.bodySmall
             )
         }
 
-        Text("$start থেকে $end", color = MyMuted)
+        item {
+            ReportNumberCard("মোট কাজ", periodTasks.size.toString())
+        }
+        item {
+            ReportNumberCard("সম্পন্ন কাজ", completed.toString())
+        }
+        item {
+            ReportNumberCard("বাকি কাজ", pending.toString())
+        }
+        item {
+            ReportNumberCard("কাজ সম্পন্নের হার", "$percent%")
+        }
+        item {
+            ReportNumberCard("অভ্যাস সম্পন্ন", habitCompletions.toString())
+        }
 
-        ReportNumberCard("মোট কাজ", periodTasks.size.toString())
-        ReportNumberCard("সম্পন্ন কাজ", completed.toString())
-        ReportNumberCard("বাকি কাজ", pending.toString())
-        ReportNumberCard("কাজ সম্পন্নের হার", "$percent%")
-        ReportNumberCard("অভ্যাস সম্পন্ন", habitCompletions.toString())
+        item {
+            Text(
+                "অভ্যাসের ধারাবাহিকতা",
+                color = MyNavy,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
 
-        Text(
-            "অভ্যাসের ধারাবাহিকতা",
-            color = MyNavy,
-            fontWeight = FontWeight.Bold
-        )
+        if (habits.isEmpty()) {
+            item {
+                EmptyMyDayCard(
+                    "এখনো কোনো অভ্যাস নেই।",
+                    "অভ্যাস যোগ করলে তার অগ্রগতি এখানে দেখা যাবে।"
+                )
+            }
+        }
 
-        habits.forEach { habit ->
+        items(habits, key = { it.id }) { habit ->
             Card(
-                colors = CardDefaults.cardColors(containerColor = MyWhite)
+                colors = CardDefaults.cardColors(containerColor = MyWhite),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .padding(14.dp)
+                        .padding(15.dp)
                 ) {
-
                     Text(
                         habit.title,
                         color = MyText,
                         fontWeight = FontWeight.SemiBold
                     )
-
+                    Spacer(Modifier.height(4.dp))
                     Text(
                         "এই সময়ে ${habit.completedDates.count { it >= start && it <= end }} দিন সম্পন্ন",
                         color = MyMuted,
@@ -1083,36 +1222,37 @@ private fun MyDayReport(
             }
         }
 
-        Text(
-            "নোট: পুরোনো সম্পন্ন কাজের তারিখ সংরক্ষিত না থাকলে সেগুলো এই রিপোর্টে গণনা করা হবে না।",
-            color = MyMuted,
-            style = MaterialTheme.typography.bodySmall
-        )
+        item {
+            Text(
+                "নোট: পুরোনো সম্পন্ন কাজের তারিখ সংরক্ষিত না থাকলে সেগুলো এই রিপোর্টে গণনা করা হবে না।",
+                color = MyMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(20.dp))
+        }
     }
 }
 
 @Composable
-private fun ReportNumberCard(
-    label: String,
-    value: String
-) {
+private fun ReportNumberCard(label: String, value: String) {
     Card(
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MyWhite),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 17.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-
             Text(label, color = MyMuted)
-
             Text(
                 value,
                 color = MyNavy,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
             )
         }
     }
