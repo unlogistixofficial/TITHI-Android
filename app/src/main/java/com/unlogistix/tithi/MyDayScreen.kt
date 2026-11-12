@@ -33,14 +33,20 @@ import java.util.Locale
 import java.util.TimeZone
 import java.util.UUID
 
-private val MyCream = Color(0xFFF8F6F0)
-private val MyWhite = Color(0xFFFFFFFF)
-private val MyNavy = Color(0xFF244B70)
-private val MyText = Color(0xFF282D32)
-private val MyMuted = Color(0xFF858A90)
-private val MyBlue = Color(0xFFEAF0F6)
-private val MyLavender = Color(0xFFEDE5F8)
+// ─── TITHI PREMIUM PALETTE ─────────────────────────────
+
+private val MyCream = Color(0xFFF7F5EF)
+private val MyWhite = Color(0xFFFFFEFB)
+private val MyNavy = Color(0xFF233F5B)
+private val MyDeepNavy = Color(0xFF1C344C)
+private val MyGold = Color(0xFFB18A50)
+private val MyGoldSoft = Color(0xFFF3EBDD)
+private val MyText = Color(0xFF292F35)
+private val MyMuted = Color(0xFF858A8F)
+private val MyLine = Color(0xFFEAE6DD)
+private val MyBlue = Color(0xFFE9EFF4)
 private val MyRed = Color(0xFFB44B45)
+private val MyGreen = Color(0xFF547D67)
 private val myTimeZone = TimeZone.getTimeZone("Asia/Dhaka")
 
 private fun myToday(): String =
@@ -55,6 +61,7 @@ private fun myFormatDate(date: Date): String =
 
 private fun shiftMyDate(date: String, amount: Int): String {
     val parser = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    parser.isLenient = false
     parser.timeZone = myTimeZone
     val calendar = Calendar.getInstance(myTimeZone)
     calendar.time = parser.parse(date) ?: Date()
@@ -67,10 +74,7 @@ private fun formatMyTime(time: String): String {
     val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
     val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
     val amPm = if (hour < 12) "AM" else "PM"
-    val displayHour = when {
-        hour % 12 == 0 -> 12
-        else -> hour % 12
-    }
+    val displayHour = if (hour % 12 == 0) 12 else hour % 12
     return String.format(Locale.US, "%02d:%02d %s", displayHour, minute, amPm)
 }
 
@@ -84,6 +88,17 @@ private fun formatMyDisplayDate(date: String): String {
         date
     }
 }
+
+private fun myTodayLabel(): String {
+    return SimpleDateFormat(
+        "EEEE, dd MMMM yyyy",
+        Locale("bn", "BD")
+    ).apply {
+        timeZone = myTimeZone
+    }.format(Date())
+}
+
+// ─── DATA MODELS ───────────────────────────────────────
 
 data class MyDayTask(
     val id: String,
@@ -102,6 +117,8 @@ data class MyDayHabit(
     val title: String,
     val completedDates: List<String> = emptyList()
 )
+
+// ─── LOCAL STORAGE ─────────────────────────────────────
 
 internal object MyDayStorage {
 
@@ -213,6 +230,8 @@ internal object MyDayStorage {
     }
 }
 
+// ─── MAIN SCREEN ───────────────────────────────────────
+
 @Composable
 fun MyDayScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -261,91 +280,146 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
     ) {
         Spacer(Modifier.height(18.dp))
 
-        Text(
-            "TITHI",
-            color = MyMuted,
-            style = MaterialTheme.typography.labelLarge
-        )
+        // Premium heading
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "T I T H I",
+                    color = MyGold,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    "আমার দিন",
+                    color = MyDeepNavy,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    "পরিকল্পনা • অভ্যাস • অগ্রগতি",
+                    color = MyMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
 
-        Text(
-            "আমার দিন",
-            color = MyNavy,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MyGoldSoft),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "ত",
+                    color = MyNavy,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
+        }
 
-        Text(
-            "পরিকল্পনা, অভ্যাস ও প্রতিদিনের অগ্রগতি",
-            color = MyMuted,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Spacer(Modifier.height(17.dp))
 
-        Spacer(Modifier.height(18.dp))
-
+        // Premium progress panel
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = MyWhite)
+            shape = RoundedCornerShape(23.dp),
+            colors = CardDefaults.cardColors(containerColor = MyDeepNavy)
         ) {
-            Column(Modifier.padding(18.dp)) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(19.dp)
+            ) {
+                Text(
+                    "আজকের অগ্রগতি",
+                    color = Color(0xFFE8D8B9),
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                Spacer(Modifier.height(7.dp))
+
+                Text(
+                    myTodayLabel(),
+                    color = Color.White.copy(alpha = 0.78f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Spacer(Modifier.height(19.dp))
+
                 Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(Modifier.weight(1f)) {
                         Text(
-                            "আজকের অগ্রগতি",
-                            color = MyNavy,
+                            "$completedToday / ${todayTasks.size}",
+                            color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.headlineLarge
                         )
                         Text(
-                            "$completedToday / ${todayTasks.size} টি কাজ সম্পন্ন",
-                            color = MyMuted,
+                            "টি কাজ সম্পন্ন",
+                            color = Color.White.copy(alpha = 0.75f),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
 
-                    Text(
-                        "${(progress * 100).toInt()}%",
-                        color = MyNavy,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(65.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.10f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "${(progress * 100).toInt()}%",
+                            color = Color(0xFFE8D8B9),
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(17.dp))
 
                 LinearProgressIndicator(
-                    progress = progress,
+                    progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(9.dp)
+                        .height(7.dp)
                         .clip(CircleShape),
-                    color = MyNavy,
-                    trackColor = MyBlue
+                    color = Color(0xFFD7B77E),
+                    trackColor = Color.White.copy(alpha = 0.16f)
                 )
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(10.dp))
 
                 Text(
-                    if (todayTasks.isEmpty()) "আজকের পরিকল্পনা শুরু করো"
-                    else if (progress == 1f) "আজকের সব কাজ সম্পন্ন হয়েছে!"
-                    else "ধীরে ধীরে এগিয়ে চলো",
-                    color = MyMuted,
+                    when {
+                        todayTasks.isEmpty() -> "আজকের পরিকল্পনা শুরু করো"
+                        progress == 1f -> "আজকের সব কাজ সম্পন্ন হয়েছে!"
+                        else -> "ধীরে ধীরে এগিয়ে চলো"
+                    },
+                    color = Color.White.copy(alpha = 0.78f),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
         }
 
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(19.dp))
 
+        // Minimal segmented navigation
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFEDEBE5))
+                .clip(RoundedCornerShape(15.dp))
+                .background(Color(0xFFECE9E1))
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
@@ -353,8 +427,11 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(11.dp))
-                        .background(if (selectedTab == tab) MyWhite else Color.Transparent)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (selectedTab == tab) MyWhite
+                            else Color.Transparent
+                        )
                         .clickable { selectedTab = tab }
                         .padding(vertical = 11.dp),
                     contentAlignment = Alignment.Center
@@ -362,20 +439,21 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
                     Text(
                         tab,
                         color = if (selectedTab == tab) MyNavy else MyMuted,
-                        fontWeight = if (selectedTab == tab) FontWeight.Bold
-                        else FontWeight.Medium,
+                        fontWeight = if (selectedTab == tab)
+                            FontWeight.Bold else FontWeight.Medium,
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(14.dp))
 
         if (selectedTab == "রিপোর্ট") {
             MyDayReport(
                 tasks = tasks.toList(),
-                habits = habits.toList()
+                habits = habits.toList(),
+                modifier = Modifier.weight(1f)
             )
         } else {
             val visibleTasks = when (selectedTab) {
@@ -390,7 +468,7 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(11.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item {
                     SectionHeader(
@@ -445,7 +523,7 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
 
                 if (selectedTab != "সম্পন্ন") {
                     item {
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(8.dp))
                         SectionHeader(
                             title = "দৈনিক অভ্যাস",
                             subtitle = "${habits.size} টি অভ্যাস",
@@ -474,7 +552,8 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
                                 val index = habits.indexOfFirst { it.id == habit.id }
                                 if (index >= 0) {
                                     val dates = habit.completedDates.toMutableSet()
-                                    if (checked) dates.add(today) else dates.remove(today)
+                                    if (checked) dates.add(today)
+                                    else dates.remove(today)
                                     habits[index] = habit.copy(
                                         completedDates = dates.sorted()
                                     )
@@ -491,18 +570,20 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
                     }
                 }
 
-                item { Spacer(Modifier.height(24.dp)) }
+                item { Spacer(Modifier.height(22.dp)) }
             }
         }
     }
 
+    // Task dialog
     if (showTaskEditor) {
         TaskEditorDialog(
             initial = editingTask,
             onDismiss = { showTaskEditor = false },
             onSave = { task ->
                 val index = tasks.indexOfFirst { it.id == task.id }
-                if (index >= 0) tasks[index] = task else tasks.add(task)
+                if (index >= 0) tasks[index] = task
+                else tasks.add(task)
 
                 ReminderScheduler.cancel(context, task.id)
 
@@ -524,18 +605,22 @@ fun MyDayScreen(modifier: Modifier = Modifier) {
         )
     }
 
+    // Habit dialog
     if (showHabitEditor) {
         HabitEditorDialog(
             initial = editingHabit,
             onDismiss = { showHabitEditor = false },
             onSave = { habit ->
                 val index = habits.indexOfFirst { it.id == habit.id }
-                if (index >= 0) habits[index] = habit else habits.add(habit)
+                if (index >= 0) habits[index] = habit
+                else habits.add(habit)
                 showHabitEditor = false
             }
         )
     }
 }
+
+// ─── SECTION HEADER ────────────────────────────────────
 
 @Composable
 private fun SectionHeader(
@@ -553,10 +638,11 @@ private fun SectionHeader(
         Column(Modifier.weight(1f)) {
             Text(
                 title,
-                color = MyText,
+                color = MyDeepNavy,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium
             )
+            Spacer(Modifier.height(2.dp))
             Text(
                 subtitle,
                 color = MyMuted,
@@ -564,7 +650,10 @@ private fun SectionHeader(
             )
         }
 
-        TextButton(onClick = onAction) {
+        TextButton(
+            onClick = onAction,
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 5.dp)
+        ) {
             Text(
                 "+ $action",
                 color = MyNavy,
@@ -573,6 +662,8 @@ private fun SectionHeader(
         }
     }
 }
+
+// ─── TASK CARD ─────────────────────────────────────────
 
 @Composable
 private fun MyDayTaskCard(
@@ -585,25 +676,30 @@ private fun MyDayTaskCard(
 
     val priorityColor = when (task.priority) {
         "জরুরি" -> MyRed
-        "গুরুত্বপূর্ণ" -> Color(0xFFC28B37)
+        "গুরুত্বপূর্ণ" -> MyGold
         else -> MyNavy
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MyWhite)
+        shape = RoundedCornerShape(17.dp),
+        colors = CardDefaults.cardColors(containerColor = MyWhite),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MyLine),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 9.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+                .padding(start = 9.dp, end = 9.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = task.completed,
                 onCheckedChange = onToggle,
-                colors = CheckboxDefaults.colors(checkedColor = MyNavy)
+                colors = CheckboxDefaults.colors(
+                    checkedColor = MyNavy,
+                    uncheckedColor = MyMuted
+                )
             )
 
             Column(
@@ -619,7 +715,7 @@ private fun MyDayTaskCard(
                 )
 
                 if (task.note.isNotBlank()) {
-                    Spacer(Modifier.height(3.dp))
+                    Spacer(Modifier.height(4.dp))
                     Text(
                         task.note,
                         color = MyMuted,
@@ -638,7 +734,7 @@ private fun MyDayTaskCard(
                         color = MyMuted,
                         style = MaterialTheme.typography.labelSmall
                     )
-                    Text("•", color = MyMuted)
+                    Text("·", color = MyGold)
                     Text(
                         formatMyTime(task.dueTime),
                         color = MyNavy,
@@ -665,8 +761,11 @@ private fun MyDayTaskCard(
                         style = MaterialTheme.typography.labelSmall
                     )
                     if (task.reminder) {
-                        Text("• Reminder চালু", color = MyMuted,
-                            style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            "· Reminder চালু",
+                            color = MyMuted,
+                            style = MaterialTheme.typography.labelSmall
+                        )
                     }
                 }
             }
@@ -706,6 +805,8 @@ private fun MyDayTaskCard(
     }
 }
 
+// ─── HABIT CARD ────────────────────────────────────────
+
 @Composable
 private fun MyDayHabitCard(
     habit: MyDayHabit,
@@ -720,19 +821,24 @@ private fun MyDayHabitCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MyWhite)
+        shape = RoundedCornerShape(17.dp),
+        colors = CardDefaults.cardColors(containerColor = MyWhite),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MyLine),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 9.dp, end = 12.dp, top = 11.dp, bottom = 11.dp),
+                .padding(start = 9.dp, end = 9.dp, top = 11.dp, bottom = 11.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = done,
                 onCheckedChange = onToggle,
-                colors = CheckboxDefaults.colors(checkedColor = MyNavy)
+                colors = CheckboxDefaults.colors(
+                    checkedColor = MyGreen,
+                    uncheckedColor = MyMuted
+                )
             )
 
             Column(
@@ -748,7 +854,7 @@ private fun MyDayHabitCard(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "ধারাবাহিকতা: $streak দিন  •  মোট: ${habit.completedDates.size} দিন",
+                    "ধারাবাহিকতা: $streak দিন  ·  মোট: ${habit.completedDates.size} দিন",
                     color = MyMuted,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -800,18 +906,34 @@ private fun calculateHabitStreak(dates: List<String>, today: String): Int {
     return count
 }
 
+// ─── EMPTY STATE ───────────────────────────────────────
+
 @Composable
 private fun EmptyMyDayCard(message: String, subtitle: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MyWhite)
+        shape = RoundedCornerShape(17.dp),
+        colors = CardDefaults.cardColors(containerColor = MyWhite),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MyLine),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(Modifier.padding(20.dp)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Box(
+                Modifier
+                    .width(32.dp)
+                    .height(3.dp)
+                    .clip(CircleShape)
+                    .background(MyGold)
+            )
+            Spacer(Modifier.height(12.dp))
             Text(
                 message,
                 color = MyText,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(5.dp))
             Text(
@@ -822,6 +944,8 @@ private fun EmptyMyDayCard(message: String, subtitle: String) {
         }
     }
 }
+
+// ─── TASK EDITOR ───────────────────────────────────────
 
 @Composable
 private fun TaskEditorDialog(
@@ -851,6 +975,7 @@ private fun TaskEditorDialog(
                     color = MyNavy,
                     fontWeight = FontWeight.Bold
                 )
+                Spacer(Modifier.height(3.dp))
                 Text(
                     "তোমার কাজের বিবরণ ঠিক করো",
                     color = MyMuted,
@@ -924,7 +1049,9 @@ private fun TaskEditorDialog(
                         TimePickerDialog(
                             context,
                             { _, hour, minute ->
-                                time = String.format(Locale.US, "%02d:%02d", hour, minute)
+                                time = String.format(
+                                    Locale.US, "%02d:%02d", hour, minute
+                                )
                             },
                             parts.getOrNull(0)?.toIntOrNull() ?: 9,
                             parts.getOrNull(1)?.toIntOrNull() ?: 0,
@@ -1033,6 +1160,8 @@ private fun TaskEditorDialog(
     )
 }
 
+// ─── HABIT EDITOR ──────────────────────────────────────
+
 @Composable
 private fun HabitEditorDialog(
     initial: MyDayHabit?,
@@ -1089,10 +1218,13 @@ private fun HabitEditorDialog(
     )
 }
 
+// ─── REPORT ────────────────────────────────────────────
+
 @Composable
 private fun MyDayReport(
     tasks: List<MyDayTask>,
-    habits: List<MyDayHabit>
+    habits: List<MyDayHabit>,
+    modifier: Modifier = Modifier
 ) {
     var period by remember { mutableStateOf("সাপ্তাহিক") }
     val today = myToday()
@@ -1125,7 +1257,9 @@ private fun MyDayReport(
         myFormatDate(calendar.time)
     }
 
-    val periodTasks = tasks.filter { it.dueDate >= start && it.dueDate <= end }
+    val periodTasks = tasks.filter {
+        it.dueDate >= start && it.dueDate <= end
+    }
     val completed = periodTasks.count { it.completed }
     val pending = periodTasks.size - completed
     val percent = if (periodTasks.isEmpty()) 0
@@ -1136,21 +1270,38 @@ private fun MyDayReport(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(11.dp)
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MyWhite)
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
                 listOf("সাপ্তাহিক", "মাসিক").forEach { option ->
-                    FilterChip(
-                        selected = period == option,
-                        onClick = { period = option },
-                        label = { Text(option) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MyLavender,
-                            selectedLabelColor = MyNavy
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(
+                                if (period == option) MyNavy
+                                else Color.Transparent
+                            )
+                            .clickable { period = option }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            option,
+                            color = if (period == option) Color.White else MyMuted,
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelLarge
                         )
-                    )
+                    }
                 }
             }
         }
@@ -1180,9 +1331,10 @@ private fun MyDayReport(
         }
 
         item {
+            Spacer(Modifier.height(5.dp))
             Text(
                 "অভ্যাসের ধারাবাহিকতা",
-                color = MyNavy,
+                color = MyDeepNavy,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium
             )
@@ -1200,7 +1352,9 @@ private fun MyDayReport(
         items(habits, key = { it.id }) { habit ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = MyWhite),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MyLine),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
                     Modifier
@@ -1238,7 +1392,9 @@ private fun ReportNumberCard(label: String, value: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MyWhite),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MyLine),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             Modifier
