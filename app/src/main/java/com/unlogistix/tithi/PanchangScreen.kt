@@ -50,7 +50,7 @@ private val pCities = listOf(
 )
 
 @Composable
-fun PanchangScreen(
+fun PanchangScreenContent(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
