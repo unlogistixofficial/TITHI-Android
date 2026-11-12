@@ -4,8 +4,9 @@ package com.unlogistix.tithi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +21,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 private val MCream = Color(0xFFF8F6F0)
-private val MWhite = Color.White
+private val MWhite = Color(0xFFFFFFFF)
 private val MNavy = Color(0xFF244B70)
 private val MText = Color(0xFF282D32)
 private val MMuted = Color(0xFF777D83)
@@ -29,14 +30,28 @@ private val MGold = Color(0xFF9B7842)
 private val MSoftBlue = Color(0xFFEAF0F6)
 
 private val bengaliMonths = listOf(
-    "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল",
-    "মে", "জুন", "জুলাই", "আগস্ট",
-    "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"
+    "জানুয়ারি",
+    "ফেব্রুয়ারি",
+    "মার্চ",
+    "এপ্রিল",
+    "মে",
+    "জুন",
+    "জুলাই",
+    "আগস্ট",
+    "সেপ্টেম্বর",
+    "অক্টোবর",
+    "নভেম্বর",
+    "ডিসেম্বর"
 )
 
 private val bengaliWeekdays = listOf(
-    "রবি", "সোম", "মঙ্গল", "বুধ",
-    "বৃহস্পতি", "শুক্র", "শনি"
+    "রবি",
+    "সোম",
+    "মঙ্গল",
+    "বুধ",
+    "বৃহস্পতি",
+    "শুক্র",
+    "শনি"
 )
 
 private fun createMonthCalendar(
@@ -160,7 +175,7 @@ fun MonthlyCalendarScreenContent(
             .fillMaxSize()
             .background(MCream)
             .padding(18.dp)
-            .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
@@ -261,6 +276,7 @@ fun MonthlyCalendarScreenContent(
                         week.forEach { day ->
 
                             val isSelected = day == selectedDay
+
                             val isToday = day != null &&
                                 displayedYear == todayYear &&
                                 displayedMonth == todayMonth &&
@@ -296,8 +312,11 @@ fun MonthlyCalendarScreenContent(
                                         fontSize = 14.sp,
                                         fontWeight = if (
                                             isSelected || isToday
-                                        ) FontWeight.Bold
-                                        else FontWeight.Normal,
+                                        ) {
+                                            FontWeight.Bold
+                                        } else {
+                                            FontWeight.Normal
+                                        },
                                         color = when {
                                             isSelected -> MWhite
                                             isToday -> MNavy
